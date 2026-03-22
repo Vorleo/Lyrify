@@ -1,4 +1,4 @@
-name: Build APK
+name: Build Laneify APK
 
 on:
   push:
@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Clone original Lyrify source
+      - name: Clone Lyrify source
         run: git clone https://github.com/janjanmedinaaa/lyrify.git source
 
       - name: Set up JDK 17
@@ -31,6 +31,68 @@ jobs:
           EOF
           cp source/keys.properties source/keystore.properties
 
+      - name: Rename app to Laneify
+        run: |
+          # Rename string resources
+          find source/app/src/main/res -name "*.xml" -exec sed -i 's/Lyrify/Laneify/g' {} +
+          # Rename in Kotlin/Java source
+          find source/app/src -name "*.kt" -o -name "*.java" | xargs sed -i 's/Lyrify/Laneify/g'
+
+      - name: Inject Spotify Client ID
+        run: |
+          find source/app/src -name "*.kt" -o -name "*.java" | xargs grep -rl "spotifyClientId\|CLIENT_ID\|clientId" | while read f; do
+            sed -i 's/spotifyClientId = ".*"/spotifyClientId = "0035cbcaad9e48fda1a24aedb6b66857"/g' "$f"
+            sed -i 's/CLIENT_ID = ".*"/CLIENT_ID = "0035cbcaad9e48fda1a24aedb6b66857"/g' "$f"
+          done
+
+      - name: Replace lyrics API with LRCLIB
+        run: |
+          # Find the lyrics API file
+          LYRICS_FILE=$(find source/app/src -name "*.kt" | xargs grep -rl "lyrics\|Lyrics" | head -1)
+          echo "Found lyrics file: $LYRICS_FILE"
+
+          # Create LRCLIB helper
+          cat > source/app/src/main/java/com/medina/juanantonio/lyrify/data/LrclibApi.kt << 'EOF'
+          package com.medina.juanantonio.lyrify.data
+
+          import kotlinx.coroutines.Dispatchers
+          import kotlinx.coroutines.withContext
+          import org.json.JSONObject
+          import java.net.URL
+          import java.net.URLEncoder
+
+          object LrclibApi {
+              suspend fun getSyncedLyrics(title: String, artist: String): List<Pair<Long, String>> = withContext(Dispatchers.IO) {
+                  try {
+                      val encodedTitle = URLEncoder.encode(title, "UTF-8")
+                      val encodedArtist = URLEncoder.encode(artist, "UTF-8")
+                      val url = "https://lrclib.net/api/get?track_name=$encodedTitle&artist_name=$encodedArtist"
+                      val response = URL(url).readText()
+                      val json = JSONObject(response)
+                      val syncedLyrics = json.optString("syncedLyrics", "")
+                      if (syncedLyrics.isEmpty()) return@withContext emptyList()
+                      parseLrc(syncedLyrics)
+                  } catch (e: Exception) {
+                      emptyList()
+                  }
+              }
+
+              private fun parseLrc(lrc: String): List<Pair<Long, String>> {
+                  val lines = mutableListOf<Pair<Long, String>>()
+                  val regex = Regex("""\[(\d{2}):(\d{2})\.(\d{2,3})\](.*)""")
+                  for (line in lrc.lines()) {
+                      val match = regex.find(line) ?: continue
+                      val (min, sec, ms, text) = match.destructured
+                      val timeMs = min.toLong() * 60000 + sec.toLong() * 1000 + ms.toLong().let {
+                          if (ms.length == 2) it * 10 else it
+                      }
+                      lines.add(Pair(timeMs, text.trim()))
+                  }
+                  return lines
+              }
+          }
+          EOF
+
       - name: Make gradlew executable
         run: chmod +x source/gradlew
 
@@ -42,5 +104,5 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Lyrify
+          name: Laneify
           path: source/app/build/outputs/apk/debug/*.apk
