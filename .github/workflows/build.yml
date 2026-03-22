@@ -33,11 +33,11 @@ jobs:
 
       - name: Rename app to Laneify
         run: |
-          # Rename string resources
-          find source/app/src/main/res -name "*.xml" -exec sed -i 's/Lyrify/Laneify/g' {} +
-          # Rename in Kotlin/Java source
-          find source/app/src -name "*.kt" -o -name "*.java" | xargs sed -i 's/Lyrify/Laneify/g'
-
+          # Rename app label in string resources only
+          find source/app/src/main/res -name "strings.xml" -exec sed -i 's/>Lyrify</>Laneify</g' {} +
+          # Rename app_name specifically
+          find source/app/src/main/res -name "*.xml" -exec sed -i 's/name="app_name">Lyrify/name="app_name">Laneify/g' {} +
+          
       - name: Inject Spotify Client ID
         run: |
           find source/app/src -name "*.kt" -o -name "*.java" | xargs grep -rl "spotifyClientId\|CLIENT_ID\|clientId" | while read f; do
