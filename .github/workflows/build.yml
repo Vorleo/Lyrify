@@ -10,11 +10,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
-
-      - name: Unzip source
-        run: unzip lyrify-master.zip -d source
+      - name: Clone original Lyrify source
+        run: git clone https://github.com/janjanmedinaaa/lyrify.git source
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -22,16 +19,26 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
+      - name: Create keys.properties
+        run: |
+          cat > source/keys.properties << EOF
+          storeFile=debug
+          storePassword=android
+          keyAlias=androiddebugkey
+          keyPassword=android
+          compileSdkVersion=34
+          EOF
+
       - name: Make gradlew executable
-        run: chmod +x source/lyrify-master/gradlew
+        run: chmod +x source/gradlew
 
       - name: Build debug APK
         run: |
-          cd source/lyrify-master
+          cd source
           ./gradlew assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: Lyrify-debug
-          path: source/lyrify-master/app/build/outputs/apk/debug/*.apk
+          path: source/app/build/outputs/apk/debug/*.apk
