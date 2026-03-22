@@ -86,11 +86,23 @@ jobs:
           }
           EOF
 
+      - name: Generate debug keystore and print SHA-1
+        run: |
+          mkdir -p ~/.android
+          keytool -genkeypair -v -keystore ~/.android/debug.keystore \
+            -alias androiddebugkey \
+            -keyalg RSA -keysize 2048 \
+            -validity 10000 \
+            -storepass android \
+            -keypass android \
+            -dname "CN=Android Debug,O=Android,C=US"
+          keytool -list -v -keystore ~/.android/debug.keystore \
+            -alias androiddebugkey \
+            -storepass android \
+            -keypass android | grep SHA1
+
       - name: Make gradlew executable
         run: chmod +x source/gradlew
-
-      - name: Print SHA-1
-        run: keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android -keypass android 2>/dev/null | grep SHA1
 
       - name: Build debug APK
         run: |
