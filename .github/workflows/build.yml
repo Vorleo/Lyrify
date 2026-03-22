@@ -27,17 +27,9 @@ jobs:
           keyAlias=androiddebugkey
           keyPassword=android
           compileSdkVersion=34
+          spotifyClientId=0035cbcaad9e48fda1a24aedb6b66857
           EOF
           cp source/keys.properties source/keystore.properties
-
-      - name: Inject Spotify Client ID
-        run: |
-          find source -name "*.kt" -o -name "*.java" | xargs grep -l "CLIENT_ID\|client_id\|clientId\|SPOTIFY" | head -5
-          grep -rn "CLIENT_ID\|client_id\|clientId\|SPOTIFY_CLIENT" source/app/src --include="*.kt" --include="*.java" || true
-
-      - name: Replace Client ID in source
-        run: |
-          find source/app/src -type f \( -name "*.kt" -o -name "*.java" \) -exec sed -i 's/BuildConfig\.SPOTIFY_CLIENT_ID\|"YOUR_CLIENT_ID"\|"null"\|clientId = ""/clientId = "0035cbcaad9e48fda1a24aedb6b66857"/g' {} +
 
       - name: Make gradlew executable
         run: chmod +x source/gradlew
@@ -45,7 +37,7 @@ jobs:
       - name: Build debug APK
         run: |
           cd source
-          ./gradlew assembleDebug -PSPOTIFY_CLIENT_ID="0035cbcaad9e48fda1a24aedb6b66857"
+          ./gradlew assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
