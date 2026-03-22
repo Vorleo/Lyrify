@@ -19,9 +19,9 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Create keys.properties
+      - name: Create keystore.properties
         run: |
-          cat > source/keys.properties << EOF
+          cat > source/keystore.properties << EOF
           storeFile=debug
           storePassword=android
           keyAlias=androiddebugkey
