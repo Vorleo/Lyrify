@@ -41,5 +41,5 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Lyrify-debug
+          name: Lyrify
           path: source/app/build/outputs/apk/debug/*.apk
